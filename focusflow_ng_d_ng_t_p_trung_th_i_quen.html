@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusFlow - Duy Trì Tập Trung & Thói Quen</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            850: '#111827',
+                            900: '#0f172a',
+                            950: '#020617',
+                        },
+                        indigo: {
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            500: '#6366f1'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.3);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.6);
+        }
+        /* Progress Circle Transition */
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white relative overflow-x-hidden">
+
+    <!-- Ambient Sound Overlay Effect (Visual Cue) -->
+    <div id="ambient-glow" class="fixed inset-0 pointer-events-none opacity-0 transition-opacity duration-1000 bg-radial from-indigo-500/10 via-transparent to-transparent"></div>
+
+    <!-- Header Navigation -->
+    <header id="app-header" class="w-full border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-40 transition-all duration-300">
+        <div class="max-w-6xl mx-auto px-4 py-3.5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-indigo-600/20 text-indigo-400 rounded-xl border border-indigo-500/30">
+                    <i data-lucide="brain-circuit" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg tracking-wide text-white flex items-center gap-2">
+                        FocusFlow 
+                        <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Pro</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Duy trì kỷ luật & sự tập trung sâu</p>
+                </div>
+            </div>
+
+            <!-- Header Action Controls -->
+            <div class="flex items-center gap-2 sm:gap-4">
+                <!-- Daily Streak Badge -->
+                <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/70 border border-slate-700/50 text-amber-400 text-xs sm:text-sm font-medium" title="Chuỗi ngày tập trung liên tiếp">
+                    <i data-lucide="flame" class="w-4 h-4 fill-amber-400/20 text-amber-400"></i>
+                    <span id="streak-counter">0</span> ngày
+                </div>
+
+                <!-- Total Pomodoros Today -->
+                <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/70 border border-slate-700/50 text-indigo-400 text-xs sm:text-sm font-medium" title="Số phiên hoàn thành hôm nay">
+                    <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                    <span id="completed-count">0</span> phiên
+                </div>
+
+                <!-- Zen Mode Button -->
+                <button id="zen-toggle-btn" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors border border-slate-700/50 flex items-center gap-2 text-sm" title="Chế độ Zen (Tối giản)">
+                    <i data-lucide="maximize-2" class="w-4 h-4"></i>
+                    <span class="hidden md:inline">Zen Mode</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- LEFT COLUMN: Timer & Soundscape (7 cols) -->
+        <section class="lg:col-span-7 flex flex-col gap-6">
+            
+            <!-- Pomodoro Timer Card -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden group">
+                <!-- Background decorative elements -->
+                <div class="absolute -right-16 -top-16 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute -left-16 -bottom-16 w-48 h-48 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+                <!-- Mode Selector Buttons -->
+                <div class="flex justify-center items-center gap-2 p-1.5 bg-slate-950/80 rounded-xl border border-slate-800/80 max-w-md mx-auto mb-8">
+                    <button data-mode="work" class="mode-btn flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
+                        🎯 Tập trung
+                    </button>
+                    <button data-mode="shortBreak" class="mode-btn flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+                        ☕ Nghỉ ngắn
+                    </button>
+                    <button data-mode="longBreak" class="mode-btn flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+                        🌴 Nghỉ dài
+                    </button>
+                </div>
+
+                <!-- Circular Progress & Time Display -->
+                <div class="relative w-64 h-64 sm:w-72 sm:h-72 mx-auto flex items-center justify-center my-2">
+                    <svg class="w-full h-full transform -rotate-90">
+                        <!-- Background Circle -->
+                        <circle
+                            cx="50%" cy="50%" r="115"
+                            class="text-slate-800/80"
+                            stroke-width="10"
+                            stroke="currentColor"
+                            fill="transparent"
+                        />
+                        <!-- Progress Dynamic Circle -->
+                        <circle
+                            id="timer-progress"
+                            cx="50%" cy="50%" r="115"
+                            class="text-indigo-500 progress-ring__circle"
+                            stroke-width="10"
+                            stroke-linecap="round"
+                            stroke="currentColor"
+                            fill="transparent"
+                            stroke-dasharray="722.56"
+                            stroke-dashoffset="0"
+                        />
+                    </svg>
+
+                    <!-- Time & Status Text Overlay -->
+                    <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                        <span id="timer-display" class="text-5xl sm:text-6xl font-extrabold tracking-tight font-mono text-white select-none">
+                            25:00
+                        </span>
+                        <span id="timer-status" class="mt-2 text-xs font-semibold uppercase tracking-widest text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20">
+                            Sẵn sàng làm việc
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Timer Controls -->
+                <div class="flex items-center justify-center gap-4 mt-8">
+                    <!-- Custom Time Settings Modal Toggle -->
+                    <button id="settings-btn" class="p-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-slate-300 hover:text-white transition-all transform active:scale-95" title="Tùy chỉnh thời gian">
+                        <i data-lucide="settings-2" class="w-5 h-5"></i>
+                    </button>
+
+                    <!-- Start / Pause Main Action -->
+                    <button id="start-pause-btn" class="px-8 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/30 hover:shadow-indigo-500/40 transition-all transform active:scale-95 flex items-center gap-2 text-base">
+                        <i id="start-icon" data-lucide="play" class="w-5 h-5 fill-current"></i>
+                        <span id="start-text">Bắt đầu</span>
+                    </button>
+
+                    <!-- Reset Button -->
+                    <button id="reset-btn" class="p-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-slate-300 hover:text-white transition-all transform active:scale-95" title="Đặt lại đồng hồ">
+                        <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Ambient Sound Generator Card (Web Audio API) -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 backdrop-blur-xl">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="headphones" class="w-5 h-5 text-indigo-400"></i>
+                        <h2 class="font-semibold text-slate-200">Âm thanh nền (Synth Ambient)</h2>
+                    </div>
+                    <span class="text-xs text-slate-500">Chạy Offline 100%</span>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <!-- Rain Generator -->
+                    <div class="sound-card bg-slate-950/60 border border-slate-800 rounded-xl p-3 flex flex-col gap-2 transition-all">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-medium flex items-center gap-1.5 text-slate-300">
+                                <i data-lucide="cloud-rain" class="w-3.5 h-3.5 text-blue-400"></i> Tiếng mưa
+                            </span>
+                            <button data-sound="rain" class="sound-toggle text-slate-500 hover:text-slate-300">
+                                <i data-lucide="power" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <input type="range" data-sound="rain" class="sound-volume w-full accent-indigo-500 h-1 bg-slate-800 rounded-lg cursor-pointer" min="0" max="1" step="0.05" value="0.5">
+                    </div>
+
+                    <!-- White Noise Generator -->
+                    <div class="sound-card bg-slate-950/60 border border-slate-800 rounded-xl p-3 flex flex-col gap-2 transition-all">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-medium flex items-center gap-1.5 text-slate-300">
+                                <i data-lucide="radio" class="w-3.5 h-3.5 text-purple-400"></i> Nhiễu trắng
+                            </span>
+                            <button data-sound="white" class="sound-toggle text-slate-500 hover:text-slate-300">
+                                <i data-lucide="power" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <input type="range" data-sound="white" class="sound-volume w-full accent-indigo-500 h-1 bg-slate-800 rounded-lg cursor-pointer" min="0" max="1" step="0.05" value="0.3">
+                    </div>
+
+                    <!-- Brown Noise Generator -->
+                    <div class="sound-card bg-slate-950/60 border border-slate-800 rounded-xl p-3 flex flex-col gap-2 transition-all">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-medium flex items-center gap-1.5 text-slate-300">
+                                <i data-lucide="wind" class="w-3.5 h-3.5 text-amber-400"></i> Tiếng sóng/Gió
+                            </span>
+                            <button data-sound="brown" class="sound-toggle text-slate-500 hover:text-slate-300">
+                                <i data-lucide="power" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <input type="range" data-sound="brown" class="sound-volume w-full accent-indigo-500 h-1 bg-slate-800 rounded-lg cursor-pointer" min="0" max="1" step="0.05" value="0.5">
+                    </div>
+
+                    <!-- Binaural Soft Drone -->
+                    <div class="sound-card bg-slate-950/60 border border-slate-800 rounded-xl p-3 flex flex-col gap-2 transition-all">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-medium flex items-center gap-1.5 text-slate-300">
+                                <i data-lucide="waves" class="w-3.5 h-3.5 text-emerald-400"></i> Tiếng Sâu (Sóng)
+                            </span>
+                            <button data-sound="binaural" class="sound-toggle text-slate-500 hover:text-slate-300">
+                                <i data-lucide="power" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <input type="range" data-sound="binaural" class="sound-volume w-full accent-indigo-500 h-1 bg-slate-800 rounded-lg cursor-pointer" min="0" max="1" step="0.05" value="0.4">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Quote Card -->
+            <div class="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 flex items-start gap-4">
+                <div class="p-2 bg-amber-500/10 text-amber-400 rounded-lg mt-0.5 shrink-0">
+                    <i data-lucide="quote" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <p id="quote-text" class="text-sm italic text-slate-300 leading-relaxed">
+                        "Sự tập trung là khả năng nói không với hàng nghìn điều tốt khác để chọn ra điều duy nhất quan trọng."
+                    </p>
+                    <p id="quote-author" class="text-xs font-semibold text-slate-500 mt-2">— Khuyết danh</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT COLUMN: Task Checklist & Habit Tracker (5 cols) -->
+        <section class="lg:col-span-5 flex flex-col gap-6">
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 backdrop-blur-xl flex flex-col h-full min-h-[520px]">
+                
+                <!-- Task Header -->
+                <div class="flex items-center justify-between mb-5">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="check-square" class="w-5 h-5 text-indigo-400"></i>
+                        <h2 class="font-bold text-slate-100 text-lg">Mục tiêu hôm nay</h2>
+                    </div>
+                    <span id="task-progress-text" class="text-xs font-semibold bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full border border-slate-700">
+                        0/0 hoàn thành
+                    </span>
+                </div>
+
+                <!-- Category Filters -->
+                <div class="flex gap-1.5 mb-4 p-1 bg-slate-950/60 rounded-xl border border-slate-800/80 text-xs">
+                    <button data-filter="all" class="filter-btn flex-1 py-1.5 px-2 rounded-lg font-medium bg-slate-800 text-white">Tất cả</button>
+                    <button data-filter="Study" class="filter-btn flex-1 py-1.5 px-2 rounded-lg font-medium text-slate-400 hover:text-slate-200">Học tập</button>
+                    <button data-filter="Code" class="filter-btn flex-1 py-1.5 px-2 rounded-lg font-medium text-slate-400 hover:text-slate-200">Lập trình</button>
+                    <button data-filter="Personal" class="filter-btn flex-1 py-1.5 px-2 rounded-lg font-medium text-slate-400 hover:text-slate-200">Cá nhân</button>
+                </div>
+
+                <!-- Input New Task -->
+                <form id="task-form" class="flex flex-col gap-2 mb-4">
+                    <div class="flex gap-2">
+                        <input 
+                            type="text" 
+                            id="task-input" 
+                            placeholder="Thêm nhiệm vụ mới (VD: Viết code C, Học Tiếng Anh)..." 
+                            class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                            required
+                        >
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl font-medium text-sm transition-all flex items-center justify-center">
+                            <i data-lucide="plus" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+
+                    <!-- Category Selector for Task -->
+                    <div class="flex items-center gap-2 px-1">
+                        <span class="text-xs text-slate-400">Danh mục:</span>
+                        <div class="flex gap-3 text-xs">
+                            <label class="flex items-center gap-1 cursor-pointer text-slate-300">
+                                <input type="radio" name="task-category" value="Study" checked class="accent-indigo-500"> Học tập
+                            </label>
+                            <label class="flex items-center gap-1 cursor-pointer text-slate-300">
+                                <input type="radio" name="task-category" value="Code" class="accent-indigo-500"> Lập trình
+                            </label>
+                            <label class="flex items-center gap-1 cursor-pointer text-slate-300">
+                                <input type="radio" name="task-category" value="Personal" class="accent-indigo-500"> Cá nhân
+                            </label>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Task List Container -->
+                <div id="task-list" class="flex-1 overflow-y-auto space-y-2.5 max-h-[340px] pr-1">
+                    <!-- Tasks will be injected dynamically via JS -->
+                </div>
+
+                <!-- Empty Task State -->
+                <div id="empty-task-state" class="hidden flex-1 flex flex-col items-center justify-center text-center p-6 text-slate-500">
+                    <i data-lucide="clipboard-list" class="w-12 h-12 stroke-1 mb-2"></i>
+                    <p class="text-sm font-medium">Chưa có nhiệm vụ nào</p>
+                    <p class="text-xs text-slate-600">Hãy thêm công việc cần làm hôm nay để duy trì tiến độ nhé!</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ZEN MODE FULLSCREEN OVERLAY -->
+    <div id="zen-overlay" class="fixed inset-0 bg-slate-950 z-50 flex flex-col items-center justify-center p-6 hidden opacity-0 transition-opacity duration-300">
+        <button id="exit-zen-btn" class="absolute top-6 right-6 p-3 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-colors" title="Thoát Chế độ Zen">
+            <i data-lucide="minimize-2" class="w-6 h-6"></i>
+        </button>
+
+        <div class="text-center max-w-xl">
+            <div id="zen-mode-tag" class="text-xs font-bold tracking-widest text-indigo-400 uppercase bg-indigo-500/10 px-4 py-1.5 rounded-full border border-indigo-500/20 inline-block mb-6">
+                Chế độ Zen Tập Trung
+            </div>
+
+            <!-- Big Zen Timer -->
+            <div id="zen-timer" class="text-7xl sm:text-9xl font-extrabold font-mono text-white tracking-tight mb-8">
+                25:00
+            </div>
+
+            <!-- Zen Controls -->
+            <div class="flex items-center justify-center gap-6 mb-12">
+                <button id="zen-play-btn" class="p-5 rounded-2xl bg-indigo-600 text-white shadow-xl shadow-indigo-600/40 hover:bg-indigo-500 transition-transform active:scale-95">
+                    <i id="zen-play-icon" data-lucide="play" class="w-8 h-8 fill-current"></i>
+                </button>
+                <button id="zen-reset-btn" class="p-5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white transition-transform active:scale-95">
+                    <i data-lucide="rotate-ccw" class="w-8 h-8"></i>
+                </button>
+            </div>
+
+            <!-- Zen Quote -->
+            <p id="zen-quote" class="text-slate-400 italic text-base sm:text-lg">
+                "Đừng nhìn đồng hồ; hãy làm những gì nó đang làm. Tiếp tục đi tới."
+            </p>
+        </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md shadow-2xl transform scale-95 transition-transform duration-200" id="settings-modal-card">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i data-lucide="sliders" class="w-5 h-5 text-indigo-400"></i> Cấu hình thời gian (Phút)
+                </h3>
+                <button id="close-settings-btn" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="settings-form" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Thời gian Tập trung</label>
+                    <input type="number" id="setting-work" min="1" max="120" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-100 text-sm focus:border-indigo-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Nghỉ ngắn</label>
+                    <input type="number" id="setting-short" min="1" max="30" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-100 text-sm focus:border-indigo-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Nghỉ dài</label>
+                    <input type="number" id="setting-long" min="1" max="60" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-100 text-sm focus:border-indigo-500 focus:outline-none">
+                </div>
+
+                <div class="pt-4 flex justify-end gap-3">
+                    <button type="button" id="cancel-settings-btn" class="px-4 py-2 rounded-xl text-slate-400 hover:bg-slate-800 text-sm font-medium">Hủy</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold shadow-lg shadow-indigo-600/30">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- APP JAVASCRIPT LOGIC -->
+    <script>
+        // --- 1. STATE & STORAGE MANAGEMENT ---
+        const DEFAULT_SETTINGS = {
+            work: 25,
+            shortBreak: 5,
+            longBreak: 15
+        };
+
+        const QUOTES = [
+            { text: "Kỷ luật là cầu nối giữa mục tiêu và thành tựu.", author: "Jim Rohn" },
+            { text: "Sự tập trung là khả năng nói không với hàng nghìn điều tốt khác để chọn ra điều duy nhất quan trọng.", author: "Steve Jobs" },
+            { text: "Bạn không cần phải vĩ đại để bắt đầu, nhưng bạn phải bắt đầu để trở nên vĩ đại.", author: "Zig Ziglar" },
+            { text: "Đừng nhìn đồng hồ; hãy làm những gì nó đang làm. Tiếp tục đi tới.", author: "Sam Levenson" },
+            { text: "Hành động nhỏ lặp lại mỗi ngày sẽ tạo nên thành quả vượt trội theo thời gian.", author: "James Clear" }
+        ];
+
+        let state = {
+            mode: 'work', // 'work', 'shortBreak', 'longBreak'
+            timeLeft: 25 * 60,
+            totalDuration: 25 * 60,
+            isRunning: false,
+            settings: JSON.parse(localStorage.getItem('ff_settings')) || DEFAULT_SETTINGS,
+            completedToday: parseInt(localStorage.getItem('ff_completed') || '0'),
+            streak: parseInt(localStorage.getItem('ff_streak') || '1'),
+            lastActiveDate: localStorage.getItem('ff_last_date') || new Date().toDateString(),
+            tasks: JSON.parse(localStorage.getItem('ff_tasks')) || [],
+            activeFilter: 'all'
+        };
+
+        let timerInterval = null;
+
+        // Check Daily Streak Reset logic
+        function checkStreakDate() {
+            const today = new Date().toDateString();
+            if (state.lastActiveDate !== today) {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                
+                if (state.lastActiveDate !== yesterday.toDateString()) {
+                    // Missed more than a day -> reset streak
+                    state.streak = 0;
+                }
+                state.completedToday = 0;
+                state.lastActiveDate = today;
+                saveState();
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('ff_settings', JSON.stringify(state.settings));
+            localStorage.setItem('ff_completed', state.completedToday.toString());
+            localStorage.setItem('ff_streak', state.streak.toString());
+            localStorage.setItem('ff_last_date', state.lastActiveDate);
+            localStorage.setItem('ff_tasks', JSON.stringify(state.tasks));
+        }
+
+        // --- 2. SOUND SYNTHESIS ENGINE (Web Audio API - Offline 100%) ---
+        let audioCtx = null;
+        const soundNodes = {
+            rain: null,
+            white: null,
+            brown: null,
+            binaural: null
+        };
+        const soundGains = {};
+
+        function initAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // Complete Sound Synthesizer Functions
+        function createNoiseBuffer(type) {
+            const bufferSize = audioCtx.sampleRate * 2;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = buffer.getChannelData(0);
+            
+            let lastOut = 0.0;
+            for (let i = 0; i < bufferSize; i++) {
+                const white = Math.random() * 2 - 1;
+                if (type === 'brown') {
+                    output[i] = (lastOut + (0.02 * white)) / 1.02;
+                    lastOut = output[i];
+                    output[i] *= 3.5; // Gain adjustment
+                } else {
+                    output[i] = white;
+                }
+            }
+            return buffer;
+        }
+
+        function toggleSound(soundType, volume) {
+            initAudioContext();
+
+            if (soundNodes[soundType]) {
+                // Turn off
+                soundNodes[soundType].stop();
+                soundNodes[soundType].disconnect();
+                soundNodes[soundType] = null;
+                return false;
+            } else {
+                // Turn on
+                const gainNode = audioCtx.createGain();
+                gainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
+                soundGains[soundType] = gainNode;
+
+                if (soundType === 'white' || soundType === 'brown') {
+                    const noise = audioCtx.createBufferSource();
+                    noise.buffer = createNoiseBuffer(soundType);
+                    noise.loop = true;
+                    noise.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    noise.start();
+                    soundNodes[soundType] = noise;
+                } else if (soundType === 'rain') {
+                    // Rain Synth: Filtered Pink/White Noise
+                    const noise = audioCtx.createBufferSource();
+                    noise.buffer = createNoiseBuffer('white');
+                    noise.loop = true;
+
+                    const filter = audioCtx.createBiquadFilter();
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(1000, audioCtx.currentTime);
+
+                    noise.connect(filter);
+                    filter.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    noise.start();
+                    soundNodes[soundType] = noise;
+                } else if (soundType === 'binaural') {
+                    // Low Ambient Drone (432Hz Base)
+                    const osc = audioCtx.createOscillator();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(108, audioCtx.currentTime); // Deep tone
+
+                    const lfo = audioCtx.createOscillator();
+                    lfo.frequency.setValueAtTime(0.2, audioCtx.currentTime); // Slow wave
+                    const lfoGain = audioCtx.createGain();
+                    lfoGain.gain.setValueAtTime(3, audioCtx.currentTime);
+
+                    lfo.connect(lfoGain);
+                    lfoGain.connect(osc.frequency);
+
+                    osc.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    osc.start();
+                    lfo.start();
+                    soundNodes[soundType] = osc;
+                }
+                return true;
+            }
+        }
+
+        function setSoundVolume(soundType, volume) {
+            if (soundGains[soundType] && audioCtx) {
+                soundGains[soundType].gain.setValueAtTime(volume, audioCtx.currentTime);
+            }
+        }
+
+        // Simple Beep Notification Audio
+        function playCompletionBeep() {
+            initAudioContext();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.15); // A5
+
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.8);
+        }
+
+        // --- 3. TIMER CONTROLLER LOGIC ---
+        const timerDisplay = document.getElementById('timer-display');
+        const zenTimerDisplay = document.getElementById('zen-timer');
+        const timerStatus = document.getElementById('timer-status');
+        const timerProgress = document.getElementById('timer-progress');
+        const startPauseBtn = document.getElementById('start-pause-btn');
+        const startIcon = document.getElementById('start-icon');
+        const startText = document.getElementById('start-text');
+        const zenPlayBtn = document.getElementById('zen-play-btn');
+        const zenPlayIcon = document.getElementById('zen-play-icon');
+
+        const RADIUS = 115;
+        const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+
+        function updateProgress() {
+            const fraction = state.timeLeft / state.totalDuration;
+            const offset = CIRCUMFERENCE - (fraction * CIRCUMFERENCE);
+            timerProgress.style.strokeDashoffset = offset;
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function renderTimer() {
+            const formatted = formatTime(state.timeLeft);
+            timerDisplay.textContent = formatted;
+            zenTimerDisplay.textContent = formatted;
+            document.title = `${formatted} - FocusFlow`;
+            updateProgress();
+        }
+
+        function setMode(mode) {
+            state.mode = mode;
+            state.isRunning = false;
+            clearInterval(timerInterval);
+
+            // Update duration based on settings
+            const minutes = state.settings[mode] || 25;
+            state.totalDuration = minutes * 60;
+            state.timeLeft = state.totalDuration;
+
+            // Update UI buttons active state
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                if (btn.dataset.mode === mode) {
+                    btn.className = "mode-btn flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 bg-indigo-600 text-white shadow-lg shadow-indigo-600/30";
+                } else {
+                    btn.className = "mode-btn flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50";
+                }
+            });
+
+            // Update status text
+            if (mode === 'work') timerStatus.textContent = 'Sẵn sàng làm việc';
+            else if (mode === 'shortBreak') timerStatus.textContent = 'Nghỉ giải lao ngắn';
+            else if (mode === 'longBreak') timerStatus.textContent = 'Nghỉ thư giãn dài';
+
+            updatePlayPauseUI();
+            renderTimer();
+        }
+
+        function toggleTimer() {
+            initAudioContext();
+            state.isRunning = !state.isRunning;
+
+            if (state.isRunning) {
+                timerInterval = setInterval(() => {
+                    if (state.timeLeft > 0) {
+                        state.timeLeft--;
+                        renderTimer();
+                    } else {
+                        onTimerComplete();
+                    }
+                }, 1000);
+            } else {
+                clearInterval(timerInterval);
+            }
+            updatePlayPauseUI();
+        }
+
+        function resetTimer() {
+            state.isRunning = false;
+            clearInterval(timerInterval);
+            state.timeLeft = state.totalDuration;
+            updatePlayPauseUI();
+            renderTimer();
+        }
+
+        function updatePlayPauseUI() {
+            if (state.isRunning) {
+                startText.textContent = "Tạm dừng";
+                startIcon.setAttribute('data-lucide', 'pause');
+                zenPlayIcon.setAttribute('data-lucide', 'pause');
+                startPauseBtn.classList.replace('bg-indigo-600', 'bg-amber-600');
+                startPauseBtn.classList.replace('hover:bg-indigo-500', 'hover:bg-amber-500');
+            } else {
+                startText.textContent = "Bắt đầu";
+                startIcon.setAttribute('data-lucide', 'play');
+                zenPlayIcon.setAttribute('data-lucide', 'play');
+                startPauseBtn.classList.replace('bg-amber-600', 'bg-indigo-600');
+                startPauseBtn.classList.replace('hover:bg-amber-500', 'hover:bg-indigo-500');
+            }
+            lucide.createIcons();
+        }
+
+        function onTimerComplete() {
+            clearInterval(timerInterval);
+            state.isRunning = false;
+            playCompletionBeep();
+
+            if (state.mode === 'work') {
+                state.completedToday++;
+                if (state.completedToday === 1) state.streak++;
+                saveState();
+                updateHeaderBadges();
+                setMode('shortBreak');
+            } else {
+                setMode('work');
+            }
+        }
+
+        // --- 4. TASK MANAGEMENT & CHECKLIST ---
+        const taskForm = document.getElementById('task-form');
+        const taskInput = document.getElementById('task-input');
+        const taskList = document.getElementById('task-list');
+        const emptyState = document.getElementById('empty-task-state');
+        const taskProgressText = document.getElementById('task-progress-text');
+
+        function addTask(text, category) {
+            const newTask = {
+                id: Date.now().toString(),
+                text,
+                category,
+                completed: false
+            };
+            state.tasks.unshift(newTask);
+            saveState();
+            renderTasks();
+        }
+
+        function toggleTask(id) {
+            state.tasks = state.tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+            saveState();
+            renderTasks();
+        }
+
+        function deleteTask(id) {
+            state.tasks = state.tasks.filter(t => t.id !== id);
+            saveState();
+            renderTasks();
+        }
+
+        function renderTasks() {
+            const filtered = state.tasks.filter(t => state.activeFilter === 'all' || t.category === state.activeFilter);
+            const completedCount = state.tasks.filter(t => t.completed).length;
+
+            taskProgressText.textContent = `${completedCount}/${state.tasks.length} hoàn thành`;
+
+            if (filtered.length === 0) {
+                taskList.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            taskList.innerHTML = filtered.map(task => `
+                <div class="group flex items-center justify-between p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 transition-all">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <button onclick="toggleTask('${task.id}')" class="w-5 h-5 rounded-md border ${task.completed ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-700 hover:border-indigo-500'} flex items-center justify-center transition-colors">
+                            ${task.completed ? '<i data-lucide="check" class="w-3.5 h-3.5"></i>' : ''}
+                        </button>
+                        <span class="text-sm font-medium ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'} truncate">
+                            ${escapeHtml(task.text)}
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${getCategoryBadgeStyle(task.category)}">
+                            ${task.category}
+                        </span>
+                        <button onclick="deleteTask('${task.id}')" class="text-slate-600 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity p-1">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        function getCategoryBadgeStyle(cat) {
+            switch(cat) {
+                case 'Study': return 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
+                case 'Code': return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+                case 'Personal': return 'bg-purple-500/10 text-purple-400 border border-purple-500/20';
+                default: return 'bg-slate-800 text-slate-400';
+            }
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        // --- 5. ZEN MODE & SETTINGS MODAL UI ---
+        const zenOverlay = document.getElementById('zen-overlay');
+        const zenToggleBtn = document.getElementById('zen-toggle-btn');
+        const exitZenBtn = document.getElementById('exit-zen-btn');
+
+        function toggleZenMode(show) {
+            if (show) {
+                zenOverlay.classList.remove('hidden');
+                setTimeout(() => zenOverlay.classList.remove('opacity-0'), 10);
+            } else {
+                zenOverlay.classList.add('opacity-0');
+                setTimeout(() => zenOverlay.classList.add('hidden'), 300);
+            }
+        }
+
+        // Settings Modal
+        const settingsModal = document.getElementById('settings-modal');
+        const settingsBtn = document.getElementById('settings-btn');
+        const closeSettingsBtn = document.getElementById('close-settings-btn');
+        const cancelSettingsBtn = document.getElementById('cancel-settings-btn');
+        const settingsForm = document.getElementById('settings-form');
+
+        function toggleSettingsModal(show) {
+            if (show) {
+                document.getElementById('setting-work').value = state.settings.work;
+                document.getElementById('setting-short').value = state.settings.shortBreak;
+                document.getElementById('setting-long').value = state.settings.longBreak;
+                settingsModal.classList.remove('hidden');
+                setTimeout(() => settingsModal.classList.remove('opacity-0'), 10);
+            } else {
+                settingsModal.classList.add('opacity-0');
+                setTimeout(() => settingsModal.classList.add('hidden'), 200);
+            }
+        }
+
+        // Update Stats Display in Header
+        function updateHeaderBadges() {
+            document.getElementById('completed-count').textContent = state.completedToday;
+            document.getElementById('streak-counter').textContent = state.streak;
+        }
+
+        // Display Random Quote
+        function renderRandomQuote() {
+            const random = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+            document.getElementById('quote-text').textContent = `"${random.text}"`;
+            document.getElementById('quote-author').textContent = `— ${random.author}`;
+            document.getElementById('zen-quote').textContent = `"${random.text}"`;
+        }
+
+        // --- 6. EVENT LISTENERS INITIALIZATION ---
+        window.addEventListener('DOMContentLoaded', () => {
+            checkStreakDate();
+            updateHeaderBadges();
+            renderRandomQuote();
+
+            // Set Progress circle dash properties
+            timerProgress.style.strokeDasharray = `${CIRCUMFERENCE} ${CIRCUMFERENCE}`;
+            setMode('work');
+            renderTasks();
+
+            // Mode Selector Clicks
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    setMode(e.target.dataset.mode);
+                });
+            });
+
+            // Control Buttons
+            startPauseBtn.addEventListener('click', toggleTimer);
+            zenPlayBtn.addEventListener('click', toggleTimer);
+            document.getElementById('reset-btn').addEventListener('click', resetTimer);
+            document.getElementById('zen-reset-btn').addEventListener('click', resetTimer);
+
+            // Ambient Sound Toggles & Volume Sliders
+            document.querySelectorAll('.sound-toggle').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const soundType = btn.dataset.sound;
+                    const card = btn.closest('.sound-card');
+                    const slider = card.querySelector('.sound-volume');
+                    const isActive = toggleSound(soundType, parseFloat(slider.value));
+
+                    if (isActive) {
+                        btn.classList.replace('text-slate-500', 'text-indigo-400');
+                        card.classList.add('border-indigo-500/40', 'bg-indigo-500/5');
+                    } else {
+                        btn.classList.replace('text-indigo-400', 'text-slate-500');
+                        card.classList.remove('border-indigo-500/40', 'bg-indigo-500/5');
+                    }
+                });
+            });
+
+            document.querySelectorAll('.sound-volume').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    setSoundVolume(e.target.dataset.sound, parseFloat(e.target.value));
+                });
+            });
+
+            // Task Form Submit
+            taskForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const text = taskInput.value.trim();
+                const category = document.querySelector('input[name="task-category"]:checked').value;
+                if (text) {
+                    addTask(text, category);
+                    taskInput.value = '';
+                }
+            });
+
+            // Task Filter Buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.filter-btn').forEach(b => {
+                        b.className = "filter-btn flex-1 py-1.5 px-2 rounded-lg font-medium text-slate-400 hover:text-slate-200";
+                    });
+                    btn.className = "filter-btn flex-1 py-1.5 px-2 rounded-lg font-medium bg-slate-800 text-white";
+                    state.activeFilter = btn.dataset.filter;
+                    renderTasks();
+                });
+            });
+
+            // Zen Mode Events
+            zenToggleBtn.addEventListener('click', () => toggleZenMode(true));
+            exitZenBtn.addEventListener('click', () => toggleZenMode(false));
+
+            // Modal Events
+            settingsBtn.addEventListener('click', () => toggleSettingsModal(true));
+            closeSettingsBtn.addEventListener('click', () => toggleSettingsModal(false));
+            cancelSettingsBtn.addEventListener('click', () => toggleSettingsModal(false));
+
+            settingsForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                state.settings.work = parseInt(document.getElementById('setting-work').value) || 25;
+                state.settings.shortBreak = parseInt(document.getElementById('setting-short').value) || 5;
+                state.settings.longBreak = parseInt(document.getElementById('setting-long').value) || 15;
+                saveState();
+                toggleSettingsModal(false);
+                setMode(state.mode);
+            });
+
+            // Icons init
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
